@@ -1,5 +1,5 @@
 import { PullRequestEvent } from "@octokit/webhooks-types"
-import { onPullRequestOpened, onPullRequestSynchronized } from "./webhookActionHandlers";
+import { onPullRequestClosed, onPullRequestOpened } from "./webhookActionHandlers";
 
 export function doPost(evt: GoogleAppsScript.Events.DoPost) {
   const prEvt: PullRequestEvent = JSON.parse(evt.postData.contents);
@@ -8,8 +8,7 @@ export function doPost(evt: GoogleAppsScript.Events.DoPost) {
     case "opened":
       onPullRequestOpened(prEvt);
       break;
-    case "synchronize":
-      onPullRequestSynchronized(prEvt);
-      break;
+    case "closed":
+      onPullRequestClosed(prEvt)
   }
 }
