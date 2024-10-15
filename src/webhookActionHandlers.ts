@@ -1,37 +1,78 @@
-import { PullRequestClosedEvent, PullRequestOpenedEvent } from "@octokit/webhooks-types";
-import { IDS, REPLYTOKEN_SERVER_URL, USE_REPLYTOKEN } from "./env";
-import { push, reply } from "./line";
-import { Message } from "@line/bot-sdk";
+import { PullRequestOpenedEvent, PullRequestSynchronizeEvent } from "@octokit/webhooks-types";
+import { postMessage, SectionBlock } from "./slack";
+import { CHANNEL_IDS } from "./env";
 import { log } from "./log";
 
 export function onPullRequestOpened(evt: PullRequestOpenedEvent) {
-    IDS.forEach(id => {
-        const msgs: Message[] = [{
-            type: "text",
-            text:
-                `Pull Request Created
-on ${evt.pull_request.created_at}
-by ${evt.pull_request.user.login}
-${evt.pull_request.html_url}`
-        }];
-
-        if (USE_REPLYTOKEN) {
-            const replyToken: {
-                "timestamp": number
-                "id": string
-                "replyToken": string // https://github.com/GodaHaruki/Line-replytoken-bot
-            } | null = JSON.parse(UrlFetchApp.fetch(REPLYTOKEN_SERVER_URL + "?id=" + id).getContentText());
-
-            if (replyToken) {
-                reply(replyToken.replyToken, msgs);
-                log(JSON.stringify({ ...evt, LineApiType: "reply" }))
-            } else {
-                push(id, msgs);
-                log(JSON.stringify({ ...evt, LineApiType: "push" }))
+    CHANNEL_IDS.forEach(id => {
+        const msgs: SectionBlock[] = [{
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: "PullRequestCreated"
+            },
+            accessory: {
+                type: "button",
+                text: {
+                    type: "plain_text",
+                    text: "View",
+                    emoji: true
+                },
+                value: "GithubLink",
+                url: evt.pull_request.html_url,
+                action_id: "visit-link"
             }
-        } else {
-            push(id, msgs)
-            log(JSON.stringify({ ...evt, LineApiType: "push" }))
+        },
+        {
+            type: "section",
+            text: {
+                type: "mrkdwn",
+                text: `By *${evt.pull_request.user.login}*
+on ${evt.pull_request.created_at}
+${evt.pull_request.html_url}`
+            }
         }
+        ]
+
+        log(JSON.stringify(msgs))
+        postMessage(id, msgs)
     })
+}
+
+export function onPullRequestSynchronized(evt: PullRequestSynchronizeEvent) {
+    if (evt.pull_request.merged) {
+        CHANNEL_IDS.forEach(id => {
+            const msgs: SectionBlock[] = [{
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "PullRequestMerged"
+                },
+                accessory: {
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "View",
+                        emoji: true
+                    },
+                    value: "GithubLink",
+                    url: evt.pull_request.html_url,
+                    action_id: "visit-link"
+                }
+            },
+            {
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: `By *${evt.pull_request.merged_by?.login}*
+on ${evt.pull_request.merged_at}
+${evt.pull_request.html_url}`
+                }
+            }
+            ]
+
+            log(JSON.stringify(msgs))
+            postMessage(id, msgs)
+        })
+    }
 }

@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2",
-    "@line/bot-sdk": "^9.4.0",
     "@octokit/webhooks-types": "^7.6.1",
     "@types/google-apps-script": "^1.0.82",
     "clasp": "^1.0.0",
